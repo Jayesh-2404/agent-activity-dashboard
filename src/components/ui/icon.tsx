@@ -10,7 +10,10 @@ export type IconName =
   | "plus"
   | "logout"
   | "repo"
-  | "arrowRight";
+  | "arrowRight"
+  | "sun"
+  | "moon"
+  | "folder";
 
 const paths: Record<IconName, string> = {
   git: "M6 3v12m0 0a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0 0a6 6 0 0 0 6-6h4m0 0a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z",
@@ -25,6 +28,9 @@ const paths: Record<IconName, string> = {
   logout: "M10 17l5-5-5-5m5 5H3m9-9h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7",
   repo: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z",
   arrowRight: "M5 12h14m-6-6 6 6-6 6",
+  sun: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4m0-14.2-1.4 1.4M6.3 17.7l-1.4 1.4",
+  moon: "M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z",
+  folder: "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
 };
 
 export function Icon({

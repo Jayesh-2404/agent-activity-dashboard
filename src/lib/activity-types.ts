@@ -22,6 +22,7 @@ export type Commit = {
   message: string;
   author: string;
   date: string;
+  parents?: string[];
 };
 
 export type ReviewState =
@@ -94,11 +95,13 @@ export type LocalCommit = {
   message: string;
   author: string;
   date: string;
+  parents?: string[];
 };
 
 export type LocalErrorCode = "not-a-repo" | "git-missing" | "timeout" | "unreadable";
 
 export type LocalState = {
+  path: string;
   branch: string | null;
   headSha: string | null;
   upstream: string | null;

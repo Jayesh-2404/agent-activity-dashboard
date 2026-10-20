@@ -14,6 +14,12 @@
   gap: 20px;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
 .readOnly {
   display: inline-flex;
   align-items: center;
@@ -81,8 +87,8 @@
 }
 
 .githubButton:hover {
-  background: #000;
-  border-color: #000;
+  background: var(--ink-strong);
+  border-color: var(--ink-strong);
 }
 
 .githubButton svg:last-child {

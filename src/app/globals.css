@@ -1,6 +1,7 @@
 :root {
   --paper: #f2f4ef;
   --ink: #161b17;
+  --ink-strong: #000000;
   --muted: #5d665e;
   --rule: #d3d8d0;
   --signal: #b23a22;
@@ -8,12 +9,35 @@
   --clear: #2c664a;
   --hold: #8a621c;
   --white: #ffffff;
+  --overlay: rgba(22, 27, 23, 0.38);
+  --shadow: 0 24px 64px rgba(22, 27, 23, 0.2);
+
+  --graph-main: var(--ink);
+  --graph-side: var(--muted);
+  --graph-local: var(--hold);
 
   --font-sans: var(--font-familjen), "Arial", "Helvetica Neue", sans-serif;
   --font-mono: var(--font-spline), "Courier New", monospace;
 
   --rail: 208px;
   --gutter: 20px;
+}
+
+html[data-theme="dark"] {
+  --paper: #11150f;
+  --ink: #e9ece3;
+  --ink-strong: #ffffff;
+  --muted: #a0a89c;
+  --rule: #2d342b;
+  --signal: #f0836a;
+  --signal-bar: #e26849;
+  --clear: #7cc9a0;
+  --hold: #ddab55;
+  --white: #181e17;
+  --overlay: rgba(0, 0, 0, 0.62);
+  --shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+
+  color-scheme: dark;
 }
 
 *,
@@ -37,6 +61,7 @@ body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  transition: background-color 0.18s ease, color 0.18s ease;
 }
 
 h1,
@@ -138,8 +163,8 @@ img {
 }
 
 .buttonPrimary:hover {
-  border-color: #000;
-  background: #000;
+  border-color: var(--ink-strong);
+  background: var(--ink-strong);
 }
 
 .buttonQuiet {

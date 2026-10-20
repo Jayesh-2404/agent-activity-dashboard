@@ -119,6 +119,7 @@ export default function Home() {
         key={historyRepo?.fullName ?? "closed"}
         repo={historyRepo}
         onClose={closeHistory}
+        onLocalChange={activity.refresh}
       />
     </>
   );

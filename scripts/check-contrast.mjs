@@ -1,15 +1,47 @@
-const pairs = [
-  ["ink on paper", "#161b17", "#f2f4ef", 4.5],
-  ["muted on paper", "#5d665e", "#f2f4ef", 4.5],
-  ["signal on paper", "#b23a22", "#f2f4ef", 4.5],
-  ["clear on paper", "#2c664a", "#f2f4ef", 4.5],
-  ["hold on paper", "#8a621c", "#f2f4ef", 4.5],
-  ["ink on white", "#161b17", "#ffffff", 4.5],
-  ["muted on white", "#5d665e", "#ffffff", 4.5],
-  ["signal on white", "#b23a22", "#ffffff", 4.5],
-  ["clear on white", "#2c664a", "#ffffff", 4.5],
-  ["hold on white", "#8a621c", "#ffffff", 4.5],
-  ["paper on ink", "#f2f4ef", "#161b17", 4.5],
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+const cssPath = fileURLToPath(new URL("../src/app/globals.css", import.meta.url));
+const css = readFileSync(cssPath, "utf8");
+
+function tokenBlock(selector) {
+  const start = css.indexOf(selector);
+  if (start === -1) throw new Error(`Missing ${selector} block in globals.css`);
+  const open = css.indexOf("{", start);
+  const close = css.indexOf("}", open);
+  const body = css.slice(open + 1, close);
+  const tokens = {};
+  for (const match of body.matchAll(/--([\w-]+):\s*([^;]+);/g)) {
+    tokens[match[1]] = match[2].trim();
+  }
+  return tokens;
+}
+
+const rootTokens = tokenBlock(":root");
+const themes = [
+  { name: "light", tokens: rootTokens },
+  { name: "dark", tokens: { ...rootTokens, ...tokenBlock('html[data-theme="dark"]') } },
+];
+
+// Text pairs need 4.5:1. Graph lanes and status dots are non-text UI and need 3:1.
+const checks = [
+  ["ink on paper", "ink", "paper", 4.5],
+  ["muted on paper", "muted", "paper", 4.5],
+  ["ink-strong on paper", "ink-strong", "paper", 4.5],
+  ["signal on paper", "signal", "paper", 4.5],
+  ["clear on paper", "clear", "paper", 4.5],
+  ["hold on paper", "hold", "paper", 4.5],
+  ["ink on surface", "ink", "white", 4.5],
+  ["muted on surface", "muted", "white", 4.5],
+  ["signal on surface", "signal", "white", 4.5],
+  ["clear on surface", "clear", "white", 4.5],
+  ["hold on surface", "hold", "white", 4.5],
+  ["paper on ink", "paper", "ink", 4.5],
+  ["surface on ink", "white", "ink", 4.5],
+  ["graph main lane", "graph-main", "paper", 3],
+  ["graph side lane", "graph-side", "paper", 3],
+  ["graph local lane", "graph-local", "paper", 3],
+  ["signal bar on surface", "signal-bar", "white", 3],
 ];
 
 function channels(hex) {
@@ -38,17 +70,38 @@ function ratio(foreground, background) {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
+function resolve(tokens, name) {
+  const seen = new Set();
+  let current = name;
+  while (!current.startsWith("#")) {
+    if (seen.has(current)) throw new Error(`Circular token reference at --${current}`);
+    seen.add(current);
+    const match = /^var\(--([\w-]+)\)$/.exec(current);
+    if (!match) throw new Error(`Cannot resolve token --${name} (got ${current})`);
+    current = tokens[match[1]];
+    if (!current) throw new Error(`Token --${match[1]} is not defined`);
+  }
+  return current;
+}
+
 let failed = 0;
-for (const [name, foreground, background, minimum] of pairs) {
-  const value = ratio(foreground, background);
-  const pass = value >= minimum;
-  if (!pass) failed += 1;
-  console.log(`${pass ? "PASS" : "FAIL"} ${name}: ${value.toFixed(2)}:1 (min ${minimum}:1)`);
+for (const theme of themes) {
+  console.log(`\n${theme.name} theme`);
+  for (const [label, foregroundToken, backgroundToken, minimum] of checks) {
+    const foreground = resolve(theme.tokens, `var(--${foregroundToken})`);
+    const background = resolve(theme.tokens, `var(--${backgroundToken})`);
+    const value = ratio(foreground, background);
+    const pass = value >= minimum;
+    if (!pass) failed += 1;
+    console.log(
+      `${pass ? "PASS" : "FAIL"} ${label}: ${value.toFixed(2)}:1 (min ${minimum}:1, ${foreground} on ${background})`,
+    );
+  }
 }
 
 if (failed > 0) {
   console.error(`\n${failed} contrast pair${failed === 1 ? "" : "s"} failed.`);
   process.exitCode = 1;
 } else {
-  console.log("\nAll contrast pairs pass.");
+  console.log(`\nAll ${themes.length * checks.length} contrast pairs pass.`);
 }

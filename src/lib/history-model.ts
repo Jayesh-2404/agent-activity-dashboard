@@ -7,6 +7,7 @@ import type {
 
 export type GitHubCommit = {
   sha: string;
+  parents?: Array<{ sha: string }>;
   commit: {
     message: string;
     author: { name: string; date: string } | null;
@@ -51,6 +52,7 @@ export function toCommit(value: GitHubCommit): Commit {
     message: value.commit.message.split("\n")[0] || "(no message)",
     author: value.commit.author?.name ?? "Unknown",
     date: value.commit.author?.date ?? "",
+    parents: value.parents?.map((parent) => parent.sha) ?? [],
   };
 }
 

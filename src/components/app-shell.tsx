@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Brand } from "@/components/brand";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Icon } from "@/components/ui/icon";
 import { formatAge, initials } from "@/lib/format";
 import type { Repository, SessionData } from "@/lib/activity-types";
@@ -216,6 +217,7 @@ export function AppShell({
               />
               {syncLabel}
             </span>
+            <ThemeToggle />
             <button
               className={styles.refresh}
               onClick={onRefresh}
@@ -238,6 +240,7 @@ export function AppShell({
               />
               {syncError ? "failed" : syncing ? "syncing" : "synced"}
             </span>
+            <ThemeToggle />
             <button
               className={styles.refresh}
               onClick={onRefresh}

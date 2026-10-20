@@ -45,7 +45,18 @@ describe("toCommit", () => {
       message: "fix: thing",
       author: "Ada",
       date: "2026-10-18T16:22:27Z",
+      parents: [],
     });
+  });
+
+  it("keeps parent shas for the commit graph", () => {
+    expect(
+      toCommit({
+        sha: "merge",
+        parents: [{ sha: "one" }, { sha: "two" }],
+        commit: { message: "merge", author: { name: "Ada", date: "2026-10-18T16:22:27Z" } },
+      }).parents,
+    ).toEqual(["one", "two"]);
   });
 
   it("falls back when a commit has no author", () => {
@@ -54,6 +65,7 @@ describe("toCommit", () => {
       message: "x",
       author: "Unknown",
       date: "",
+      parents: [],
     });
   });
 });

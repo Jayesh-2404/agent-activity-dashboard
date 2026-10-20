@@ -1,0 +1,37 @@
+.toggle {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--muted);
+}
+
+.toggle:hover {
+  color: var(--ink);
+}
+
+.sun,
+.moon {
+  display: grid;
+  place-items: center;
+}
+
+.moon {
+  display: none;
+}
+
+:global(html[data-theme="dark"]) .sun {
+  display: none;
+}
+
+:global(html[data-theme="dark"]) .moon {
+  display: grid;
+}
+
+@media (max-width: 880px) {
+  .toggle {
+    width: 44px;
+    height: 44px;
+  }
+}

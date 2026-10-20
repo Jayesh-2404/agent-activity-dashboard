@@ -1,4 +1,5 @@
 import { Brand } from "@/components/brand";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { GitHubMark, Icon } from "@/components/ui/icon";
 import styles from "./welcome.module.css";
 
@@ -50,10 +51,13 @@ export function Welcome({ authMessage }: { authMessage: string }) {
     <main className={styles.welcome}>
       <header className={styles.header}>
         <Brand />
-        <span className={styles.readOnly}>
-          <Icon name="lock" size={13} />
-          Read-only
-        </span>
+        <div className={styles.headerActions}>
+          <span className={styles.readOnly}>
+            <Icon name="lock" size={13} />
+            Read-only
+          </span>
+          <ThemeToggle />
+        </div>
       </header>
 
       <div className={styles.grid}>
