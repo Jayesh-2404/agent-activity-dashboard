@@ -1,0 +1,30 @@
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.brand:hover {
+  text-decoration: none;
+}
+
+.mark {
+  flex: none;
+  color: var(--ink);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+@media (max-width: 880px) {
+  .brand {
+    min-height: 44px;
+  }
+}

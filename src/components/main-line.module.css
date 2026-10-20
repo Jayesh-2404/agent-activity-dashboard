@@ -1,0 +1,163 @@
+.mainLine {
+  margin-top: 34px;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--ink);
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.markSeen {
+  color: var(--signal);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: right;
+}
+
+.markSeen:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 92px 48px;
+  align-items: center;
+  gap: 16px;
+  min-height: 36px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 12px;
+}
+
+.row:hover .repo {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.repo {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.branchLine {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.branch {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sha {
+  flex: none;
+}
+
+.unpushed {
+  flex: none;
+  padding: 1px 5px;
+  border: 1px solid var(--hold);
+  color: var(--hold);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.time {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.new {
+  justify-self: end;
+  padding: 1px 5px;
+  border: 1px solid var(--signal);
+  color: var(--signal);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.spacer {
+  display: block;
+}
+
+.empty {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 880px) {
+  .mainLine {
+    margin-top: 28px;
+  }
+
+  .header {
+    align-items: center;
+  }
+
+  .markSeen {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: 12px;
+  }
+
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "repo time"
+      "branch new";
+    gap: 3px 12px;
+    padding: 10px 0;
+  }
+
+  .repo {
+    grid-area: repo;
+  }
+
+  .branchLine {
+    grid-area: branch;
+  }
+
+  .time {
+    grid-area: time;
+  }
+
+  .new {
+    grid-area: new;
+  }
+
+  .spacer {
+    display: none;
+  }
+}

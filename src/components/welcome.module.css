@@ -1,0 +1,264 @@
+.welcome {
+  width: min(1240px, 100%);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 28px 40px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.readOnly {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr);
+  align-items: center;
+  gap: 56px;
+  padding: 72px 0 56px;
+}
+
+.copy {
+  max-width: 560px;
+}
+
+.headline {
+  max-width: 12ch;
+  margin: 0 0 24px;
+  font-size: clamp(38px, 5vw, 60px);
+  font-weight: 600;
+  line-height: 1.01;
+  letter-spacing: -0.05em;
+  text-wrap: balance;
+}
+
+.lede {
+  max-width: 43ch;
+  margin: 0 0 32px;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.authError {
+  max-width: 520px;
+  margin: 0 0 18px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--signal);
+  background: var(--white);
+  color: var(--signal);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.githubButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.githubButton:hover {
+  background: #000;
+  border-color: #000;
+}
+
+.githubButton svg:last-child {
+  margin-left: 6px;
+}
+
+.finePrint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.gateWrap {
+  min-width: 0;
+  align-self: center;
+}
+
+.gateSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.gateMain {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.gateNodes circle {
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.gateBranch {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: drawBranch 1.1s cubic-bezier(0.22, 0.7, 0.2, 1) 0.15s forwards;
+}
+
+.gateBranchTip {
+  fill: var(--paper);
+  stroke: var(--muted);
+  stroke-width: 1.5;
+}
+
+.gatePost {
+  fill: none;
+  stroke: var(--signal);
+  stroke-width: 1.6;
+}
+
+.gateDot {
+  fill: var(--signal);
+}
+
+.gateLabel {
+  fill: var(--muted);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.gateBranchLabel {
+  fill: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.gateMono {
+  fill: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.gateReview {
+  fill: var(--signal);
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.gateCheck {
+  fill: none;
+  stroke: var(--clear);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.gateClear {
+  fill: var(--clear);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.gateCaption {
+  margin-top: 10px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+@keyframes drawBranch {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (max-width: 880px) {
+  .welcome {
+    padding: 20px var(--gutter) 18px;
+  }
+
+  .readOnly {
+    display: none;
+  }
+
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 38px;
+    padding: 48px 0 36px;
+  }
+
+  .headline {
+    max-width: 10ch;
+    margin-bottom: 18px;
+    font-size: clamp(38px, 10.5vw, 48px);
+  }
+
+  .lede {
+    margin-bottom: 26px;
+    font-size: 16px;
+  }
+
+  .githubButton {
+    width: 100%;
+    justify-content: space-between;
+    height: 50px;
+  }
+
+  .gateWrap {
+    padding-top: 8px;
+  }
+
+  .footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding-top: 14px;
+  }
+}
+
+@media (max-width: 380px) {
+  .headline {
+    font-size: 36px;
+  }
+}
