@@ -16,6 +16,8 @@ A personal, mobile-friendly dashboard for following AI agent work across GitHub 
 
 5. Open `http://localhost:3000` and connect GitHub.
 
+Next.js is pinned to `15.5.26`. Versions `15.5.27` and `15.5.28` fail the production build with `Invariant: no direct app page entry found`. Remove the pin only after a newer release builds successfully.
+
 ## Local commits
 
 The dashboard runs on your machine, so it can read your working copies directly. Add a mapping from each GitHub repository to its local path in `.local-repos.json` at the project root:
