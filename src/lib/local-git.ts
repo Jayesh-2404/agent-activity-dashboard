@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { LocalCommit, LocalErrorCode, LocalState } from "@/lib/activity-types";
+import type { LocalBranch, LocalCommit, LocalErrorCode, LocalState } from "@/lib/activity-types";
 
 const CONFIG_FILE = ".local-repos.json";
 const CONFIG_TTL_MS = 5_000;
@@ -10,6 +10,8 @@ const DISCOVERY_TTL_MS = 30_000;
 const GIT_TIMEOUT_MS = 3_000;
 const MAX_BUFFER = 2 * 1024 * 1024;
 const UNPUSHED_LIMIT = 20;
+const LOCAL_BRANCH_LIMIT = 25;
+const BRANCH_COMMIT_LIMIT = 8;
 const LOCAL_DEADLINE_MS = 8_000;
 const FIELD = "\x1f";
 
@@ -375,20 +377,20 @@ async function resolveLocalPath(
   return { path: found ?? null, source: found ? "discovered" : null };
 }
 
-export async function readLocalState(fullName: string): Promise<LocalRead> {
+export async function readLocalState(fullName: string, defaultBranch = "main"): Promise<LocalRead> {
   let timer: NodeJS.Timeout | undefined;
   const deadline = new Promise<LocalRead>((resolve) => {
     timer = setTimeout(() => resolve({ local: null, localError: "timeout" }), LOCAL_DEADLINE_MS);
   });
 
   try {
-    return await Promise.race([readLocalStateUncapped(fullName), deadline]);
+    return await Promise.race([readLocalStateUncapped(fullName, defaultBranch), deadline]);
   } finally {
     if (timer) clearTimeout(timer);
   }
 }
 
-async function readLocalStateUncapped(fullName: string): Promise<LocalRead> {
+async function readLocalStateUncapped(fullName: string, defaultBranch = "main"): Promise<LocalRead> {
   const resolved = await resolveLocalPath(fullName);
   if (!resolved.path) return { local: null, localError: null };
 
@@ -408,6 +410,9 @@ async function readLocalStateUncapped(fullName: string): Promise<LocalRead> {
   ]);
   if (!status.ok) return { local: null, localError: status.code };
   const parsed = parseStatus(status.stdout);
+  const localBranches = parsed.headSha
+    ? await readLocalBranches(root, defaultBranch, parsed.branch, parsed.dirty.changed + parsed.dirty.untracked > 0)
+    : { baseBranch: null, branches: [], branchesTruncated: false };
 
   let unpushed: LocalCommit[] = [];
   const logFormat = `--format=%H${FIELD}%P${FIELD}%an${FIELD}%aI${FIELD}%s`;
@@ -444,9 +449,99 @@ async function readLocalStateUncapped(fullName: string): Promise<LocalRead> {
       behind: parsed.behind,
       dirty: parsed.dirty,
       unpushed,
+      ...localBranches,
       capturedAt: new Date().toISOString(),
     },
     localError: null,
+  };
+}
+
+async function readLocalBranches(
+  root: string,
+  defaultBranch: string,
+  currentBranch: string | null,
+  hasUncommittedChanges: boolean,
+): Promise<Pick<LocalState, "baseBranch" | "branches" | "branchesTruncated">> {
+  const candidates = [
+    `refs/heads/${defaultBranch}`,
+    `refs/remotes/origin/${defaultBranch}`,
+  ];
+  let baseRef: string | null = null;
+  let baseSha: string | null = null;
+  for (const candidate of candidates) {
+    const resolved = await runGit(root, ["rev-parse", "--verify", `${candidate}^{commit}`]);
+    if (!resolved.ok) continue;
+    baseRef = candidate;
+    baseSha = resolved.stdout.trim();
+    break;
+  }
+  if (!baseRef || !baseSha) return { baseBranch: null, branches: [], branchesTruncated: false };
+
+  const refs = await runGit(root, [
+    "for-each-ref",
+    "--sort=-committerdate",
+    "--count",
+    String(LOCAL_BRANCH_LIMIT + 1),
+    `--format=%(refname:short)${FIELD}%(objectname)`,
+    "refs/heads/",
+  ]);
+  if (!refs.ok) return { baseBranch: baseRef.replace(/^refs\/(heads|remotes\/origin)\//, ""), branches: [], branchesTruncated: false };
+
+  const branches = refs.stdout
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => {
+      const [name, sha] = line.split(FIELD);
+      return name && sha ? { name, sha } : null;
+    })
+    .filter((branch): branch is { name: string; sha: string } => branch !== null);
+  const branchesTruncated = branches.length > LOCAL_BRANCH_LIMIT;
+
+  const readBranch = async ({ name, sha }: { name: string; sha: string }): Promise<LocalBranch | null> => {
+    const current = name === currentBranch;
+    if (sha === baseSha) {
+      return current && hasUncommittedChanges
+        ? { name, sha, ahead: 0, behind: 0, current, commits: [] }
+        : null;
+    }
+
+    const comparison = await runGit(root, ["rev-list", "--left-right", "--count", `${baseSha}...${sha}`]);
+    if (!comparison.ok) return null;
+    const [behindText, aheadText] = comparison.stdout.trim().split(/\s+/);
+    const behind = Number(behindText);
+    const ahead = Number(aheadText);
+    if (!Number.isFinite(ahead) || !Number.isFinite(behind)) return null;
+    if (ahead === 0 && !(current && hasUncommittedChanges)) return null;
+
+    const log = ahead > 0
+      ? await runGit(root, [
+          "log",
+          `--format=%H${FIELD}%P${FIELD}%an${FIELD}%aI${FIELD}%s`,
+          "-n",
+          String(BRANCH_COMMIT_LIMIT),
+          sha,
+          "--not",
+          baseSha,
+        ])
+      : null;
+    return {
+      name,
+      sha,
+      ahead,
+      behind,
+      current,
+      commits: log?.ok ? parseLog(log.stdout) : [],
+    };
+  };
+
+  const activeRefs = branches.slice(0, LOCAL_BRANCH_LIMIT);
+  const activity = (await Promise.all(activeRefs.map(readBranch)))
+    .filter((branch): branch is LocalBranch => branch !== null);
+
+  return {
+    baseBranch: baseRef.replace(/^refs\/(heads|remotes\/origin)\//, ""),
+    branches: activity,
+    branchesTruncated,
   };
 }
 

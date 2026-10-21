@@ -167,17 +167,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   try {
     const results = await Promise.all(repositories.map(async (name) => {
-      const localRead = readLocalState(name).catch(
-        (): LocalRead => ({ local: null, localError: "unreadable" }),
-      );
       try {
-        const [repository, local] = await Promise.all([loadRepository(name), localRead]);
+        const repository = await loadRepository(name);
+        const local = await readLocalState(name, repository.defaultBranch).catch(
+          (): LocalRead => ({ local: null, localError: "unreadable" }),
+        );
         return { repository, ...local, error: null };
       } catch (error) {
         if (error instanceof GitHubError && error.status === 401) throw error;
         return {
           repository: null,
-          ...(await localRead),
+          ...(await readLocalState(name).catch(
+            (): LocalRead => ({ local: null, localError: "unreadable" }),
+          )),
           error: error instanceof Error ? error.message : "Could not load this repository.",
           name,
         };

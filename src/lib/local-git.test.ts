@@ -1,3 +1,7 @@
+import { execFileSync } from "node:child_process";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   expandHome,
@@ -6,6 +10,8 @@ import {
   parseLog,
   parseRemoteUrl,
   parseStatus,
+  readLocalState,
+  setLocalMapping,
 } from "./local-git";
 
 const STATUS_WITH_UPSTREAM = [
@@ -161,5 +167,55 @@ describe("expandHome", () => {
   it("expands a leading tilde", () => {
     expect(expandHome("~/code", "C:\\Users\\ada")).toBe("C:\\Users\\ada\\code");
     expect(expandHome("F:\\code", "C:\\Users\\ada")).toBe("F:\\code");
+  });
+});
+
+describe("local branch activity", () => {
+  it("lists local branch commits ahead of the repository default branch", async () => {
+    const originalCwd = process.cwd();
+    const workspace = await mkdtemp(path.join(os.tmpdir(), "local-branch-activity-"));
+    const repository = path.join(workspace, "repo");
+    await mkdir(repository);
+
+    const git = (...args: string[]) =>
+      execFileSync("git", args, {
+        cwd: repository,
+        encoding: "utf8",
+        stdio: "pipe",
+      });
+    const commit = (message: string) => {
+      git("add", "--all");
+      git("-c", "user.name=Activity Test", "-c", "user.email=activity@example.test", "commit", "-m", message);
+    };
+
+    try {
+      git("init", "--initial-branch=main");
+      await writeFile(path.join(repository, "base.txt"), "base\n");
+      commit("base commit");
+      git("switch", "-c", "agent/first");
+      await writeFile(path.join(repository, "first.txt"), "first\n");
+      commit("first agent commit");
+      git("switch", "main");
+      git("switch", "-c", "agent/second");
+      await writeFile(path.join(repository, "second.txt"), "second\n");
+      commit("second agent commit");
+
+      process.chdir(workspace);
+      await setLocalMapping("fixture/repo", repository);
+      const result = await readLocalState("fixture/repo", "main");
+
+      expect(result.local?.baseBranch).toBe("main");
+      expect(result.local?.branches.map((branch) => [branch.name, branch.ahead])).toEqual(
+        expect.arrayContaining([
+          ["agent/first", 1],
+          ["agent/second", 1],
+        ]),
+      );
+      expect(result.local?.branches.find((branch) => branch.name === "agent/second")?.commits[0]?.message)
+        .toBe("second agent commit");
+    } finally {
+      process.chdir(originalCwd);
+      await rm(workspace, { recursive: true, force: true });
+    }
   });
 });

@@ -98,6 +98,15 @@ export type LocalCommit = {
   parents?: string[];
 };
 
+export type LocalBranch = {
+  name: string;
+  sha: string;
+  ahead: number;
+  behind: number;
+  current: boolean;
+  commits: LocalCommit[];
+};
+
 export type LocalErrorCode = "not-a-repo" | "git-missing" | "timeout" | "unreadable";
 
 export type LocalState = {
@@ -109,6 +118,9 @@ export type LocalState = {
   behind: number | null;
   dirty: { changed: number; untracked: number };
   unpushed: LocalCommit[];
+  baseBranch: string | null;
+  branches: LocalBranch[];
+  branchesTruncated: boolean;
   capturedAt: string;
 };
 

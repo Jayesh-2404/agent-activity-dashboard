@@ -69,6 +69,110 @@
   margin-top: 38px;
 }
 
+.localActivity {
+  margin-top: 32px;
+}
+
+.localRepos {
+  display: flex;
+  flex-direction: column;
+}
+
+.localRepo {
+  padding: 13px 0 15px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.localRepoHeading,
+.localBranchHeading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 13px;
+}
+
+.localRepoHeading {
+  justify-content: space-between;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.localBranchHeading {
+  font-size: 13px;
+}
+
+.localBranchName {
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.localAhead,
+.localBehind,
+.localCurrent {
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.localAhead {
+  color: var(--hold);
+}
+
+.localBehind,
+.localCurrent,
+.localEmpty,
+.localMore,
+.localDirty {
+  color: var(--muted);
+}
+
+.localBranches {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  margin-top: 10px;
+}
+
+.localCommits {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 7px 0 0 12px;
+  border-left: 1px solid var(--rule);
+}
+
+.localCommit {
+  display: flex;
+  gap: 9px;
+  padding-left: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.localCommits code {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.localCommits span {
+  overflow-wrap: anywhere;
+}
+
+.localMore,
+.localDirty,
+.localEmpty {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.localEmpty {
+  padding: 10px 0;
+}
+
 .groupHeading {
   display: flex;
   align-items: baseline;

@@ -5,7 +5,7 @@ import { MainLine } from "@/components/main-line";
 import { WorkItem } from "@/components/work-item";
 import { partitionWorkItems } from "@/lib/activity-model";
 import type { QueueSummary, RepositoryResult, RepositoryView, WorkItem as WorkItemType } from "@/lib/activity-types";
-import { formatAge, queueHeadline, queueTriage } from "@/lib/format";
+import { formatAge, queueHeadline, queueTriage, shortSha } from "@/lib/format";
 import styles from "./queue-view.module.css";
 
 export function QueueView({
@@ -40,6 +40,11 @@ export function QueueView({
   const { waiting, inFlight } = partitionWorkItems(items);
   const truncated = repositories.some((repo) => repo.pullRequestsTruncated || repo.truncatedBranches);
   const empty = items.length === 0;
+  const localRepositories = repositories.filter((repo) => repo.local !== null);
+  const localBranchCount = localRepositories.reduce(
+    (count, repo) => count + (repo.local?.branches.length ?? 0),
+    0,
+  );
 
   return (
     <main className={styles.queue}>
@@ -68,6 +73,81 @@ export function QueueView({
       {repositories.length > 0 ? (
         <MainLine repositories={repositories} newRepos={newRepos} onMarkSeen={onMarkSeen} />
       ) : null}
+
+      <section className={styles.localActivity} aria-labelledby="local-activity-title">
+        <div className={styles.groupHeading}>
+          <h2 className={styles.groupTitle} id="local-activity-title">
+            Local branches ahead of default branch
+          </h2>
+          <span className={styles.groupCount}>{localBranchCount}</span>
+        </div>
+        {localRepositories.length === 0 ? (
+          <p className={styles.localEmpty}>
+            Link a local clone from Repositories to see agent branches and commits ahead of the default branch.
+          </p>
+        ) : localBranchCount === 0 ? (
+          <p className={styles.localEmpty}>
+            {localRepositories.some((repo) => !repo.local?.baseBranch)
+              ? "Could not find the default branch locally. Fetch it or create a local tracking branch to compare activity."
+              : "No local branches have commits ahead of the default branch."}
+          </p>
+        ) : (
+          <div className={styles.localRepos}>
+            {localRepositories.map((repo) => {
+              const local = repo.local;
+              if (!local || local.branches.length === 0) return null;
+              return (
+                <div className={styles.localRepo} key={repo.fullName}>
+                  <div className={styles.localRepoHeading}>
+                    <span>{repo.fullName}</span>
+                    <span>compared with {local.baseBranch ?? repo.defaultBranch}</span>
+                  </div>
+                  <ul className={styles.localBranches}>
+                    {local.branches.map((branch) => (
+                      <li className={styles.localBranch} key={branch.name}>
+                        <div className={styles.localBranchHeading}>
+                          <span className={styles.localBranchName}>{branch.name}</span>
+                          <span className={styles.localAhead}>
+                            {branch.ahead} {branch.ahead === 1 ? "commit" : "commits"} ahead
+                          </span>
+                          {branch.behind > 0 ? (
+                            <span className={styles.localBehind}>{branch.behind} behind</span>
+                          ) : null}
+                          {branch.current ? <span className={styles.localCurrent}>checked out</span> : null}
+                        </div>
+                        {branch.commits.length > 0 ? (
+                          <ol className={styles.localCommits}>
+                            {branch.commits.map((commit) => (
+                              <li key={commit.sha}>
+                                <div className={styles.localCommit}>
+                                  <code>{shortSha(commit.sha)}</code>
+                                  <span>{commit.message}</span>
+                                </div>
+                              </li>
+                            ))}
+                            {branch.ahead > branch.commits.length ? (
+                              <li className={styles.localMore}>
+                                Showing {branch.commits.length} of {branch.ahead} commits
+                              </li>
+                            ) : null}
+                          </ol>
+                        ) : branch.ahead === 0 ? (
+                          <p className={styles.localDirty}>Uncommitted work on this branch</p>
+                        ) : (
+                          <p className={styles.localDirty}>Commit details are unavailable</p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  {local.branchesTruncated ? (
+                    <p className={styles.localMore}>Showing the 25 most recently active local branches.</p>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       {empty ? (
         <section className={styles.empty} aria-labelledby="empty-title">
