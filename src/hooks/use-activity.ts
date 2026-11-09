@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { buildWorkItems, snapshotWorkItems, updateWorkItemSeen } from "@/lib/activity-model";
 import type { Repository, RepositoryResult, SessionData } from "@/lib/activity-types";
 
 const REPOSITORIES_KEY = "agent-activity-repositories-v2";
@@ -13,6 +14,10 @@ type FetchOutcome = "ok" | "signed-out" | "error";
 
 function seenKey(login: string | undefined): string {
   return `agent-activity-seen-v2:${login ?? "anonymous"}`;
+}
+
+function itemsSeenKey(login: string | undefined): string {
+  return `agent-activity-seen-items-v1:${login ?? "anonymous"}`;
 }
 
 function readIds(): number[] | null {
@@ -42,14 +47,31 @@ function readSeen(key: string): Record<string, string> {
       Object.entries(stored).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
     );
   } catch {
-    localStorage.removeItem(key);
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Storage is unavailable; start from an empty record.
+    }
     return {};
   }
 }
 
 function writeSeen(key: string, snapshots: Record<string, string>): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(key, JSON.stringify(snapshots));
+  try {
+    localStorage.setItem(key, JSON.stringify(snapshots));
+  } catch {
+    // A full or blocked store must not stop the queue from updating.
+  }
+}
+
+function hasSeen(key: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return localStorage.getItem(key) !== null;
+  } catch {
+    return false;
+  }
 }
 
 function authMessageFor(reason: string): string {
@@ -73,6 +95,7 @@ export function useActivity() {
   const [sync, setSync] = useState<SyncState>("idle");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [newRepos, setNewRepos] = useState<string[]>([]);
+  const [changedItems, setChangedItems] = useState<string[]>([]);
 
   const mounted = useRef(true);
   const initialized = useRef(false);
@@ -80,6 +103,9 @@ export function useActivity() {
   const reposRef = useRef<Repository[]>([]);
   const selectedRef = useRef<number[]>([]);
   const seenRef = useRef<Record<string, string>>({});
+  const itemsSeenRef = useRef<Record<string, string>>({});
+  const itemsSeenInitialized = useRef(false);
+  const resultsRef = useRef<RepositoryResult[]>([]);
   const loginRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
@@ -103,7 +129,9 @@ export function useActivity() {
       const isCurrent = () => dashboardRequest.current === controller;
 
       if (ids.length === 0) {
+        resultsRef.current = [];
         setResults([]);
+        setChangedItems([]);
         setError("");
         setSync("idle");
         setLastUpdated(new Date());
@@ -134,6 +162,7 @@ export function useActivity() {
         if (response.status === 401) {
           setSession({ authenticated: false });
           setStatus("signed-out");
+          setChangedItems([]);
           return "signed-out";
         }
         if (!response.ok) {
@@ -142,9 +171,11 @@ export function useActivity() {
         if (!mounted.current) return "ok";
 
         const nextResults = payload.repositories ?? [];
+        resultsRef.current = nextResults;
         setResults(nextResults);
         setLastUpdated(new Date());
 
+        const knownRepositories = seenRef.current;
         const nextSnapshots: Record<string, string> = {};
         const changed: string[] = [];
         const firstVisit = Object.keys(seenRef.current).length === 0;
@@ -162,6 +193,25 @@ export function useActivity() {
           seenRef.current = nextSnapshots;
           writeSeen(seenKey(loginRef.current), nextSnapshots);
         }
+
+        const items = buildWorkItems(nextResults);
+        const seenUpdate = updateWorkItemSeen(
+          items,
+          itemsSeenRef.current,
+          knownRepositories,
+          itemsSeenInitialized.current,
+        );
+        itemsSeenRef.current = seenUpdate.snapshots;
+        writeSeen(itemsSeenKey(loginRef.current), seenUpdate.snapshots);
+        itemsSeenInitialized.current = true;
+        setChangedItems(seenUpdate.changed);
+
+        const nextSeen = { ...seenRef.current };
+        for (const [fullName, sha] of Object.entries(nextSnapshots)) {
+          if (nextSeen[fullName] === undefined) nextSeen[fullName] = sha;
+        }
+        seenRef.current = nextSeen;
+        writeSeen(seenKey(loginRef.current), nextSeen);
 
         setNewRepos(changed);
         setStatus("ready");
@@ -191,6 +241,7 @@ export function useActivity() {
         if (response.status === 401) {
           setSession({ authenticated: false });
           setStatus("signed-out");
+          setChangedItems([]);
           return;
         }
         const payload = (await response.json()) as Repository[] | { error: string };
@@ -218,6 +269,8 @@ export function useActivity() {
         setSelectedIds(nextIds);
         writeIds(nextIds);
         seenRef.current = readSeen(seenKey(login));
+        itemsSeenRef.current = readSeen(itemsSeenKey(login));
+        itemsSeenInitialized.current = hasSeen(itemsSeenKey(login));
 
         const outcome = await fetchDashboard(nextIds, repoList, true);
         if (outcome !== "signed-out" && mounted.current) setStatus("ready");
@@ -290,6 +343,7 @@ export function useActivity() {
   }, [loadRepositories]);
 
   const markSeen = useCallback(() => {
+    const results = resultsRef.current;
     const next = { ...seenRef.current };
     for (const result of results) {
       const repository = result.repository;
@@ -297,8 +351,17 @@ export function useActivity() {
     }
     seenRef.current = next;
     writeSeen(seenKey(loginRef.current), next);
+
+    const itemSnapshots = {
+      ...itemsSeenRef.current,
+      ...snapshotWorkItems(buildWorkItems(results)),
+    };
+    itemsSeenRef.current = itemSnapshots;
+    itemsSeenInitialized.current = true;
+    writeSeen(itemsSeenKey(loginRef.current), itemSnapshots);
     setNewRepos([]);
-  }, [results]);
+    setChangedItems([]);
+  }, []);
 
   const signOut = useCallback(async () => {
     try {
@@ -310,6 +373,10 @@ export function useActivity() {
       setAvailableRepos([]);
       setSelectedIds([]);
       setNewRepos([]);
+      setChangedItems([]);
+      itemsSeenRef.current = {};
+      itemsSeenInitialized.current = false;
+      resultsRef.current = [];
     }
   }, []);
 
@@ -343,6 +410,7 @@ export function useActivity() {
     sync,
     lastUpdated,
     newRepos,
+    changedItems,
     refresh,
     retry,
     commitSelection,

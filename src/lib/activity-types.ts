@@ -49,6 +49,7 @@ export type PullRequest = {
   avatarUrl: string;
   branch: string;
   base: string;
+  headSha: string;
   reviewers: string[];
   reviewState: ReviewState;
   checkState: CheckState;

@@ -5,13 +5,16 @@ import styles from "./main-line.module.css";
 export function MainLine({
   repositories,
   newRepos,
+  changedItemCount,
   onMarkSeen,
 }: {
   repositories: RepositoryView[];
   newRepos: string[];
+  changedItemCount: number;
   onMarkSeen: () => void;
 }) {
   const newSet = new Set(newRepos);
+  const unseenCount = newRepos.length + changedItemCount;
 
   return (
     <section className={styles.mainLine} aria-labelledby="main-line-title">
@@ -19,9 +22,9 @@ export function MainLine({
         <h2 className={styles.title} id="main-line-title">
           Latest on main
         </h2>
-        {newRepos.length > 0 ? (
+        {unseenCount > 0 ? (
           <button className={styles.markSeen} onClick={onMarkSeen}>
-            Mark {newRepos.length} new as seen
+            Mark all seen
           </button>
         ) : null}
       </div>

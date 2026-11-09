@@ -79,7 +79,7 @@ export function buildWorkItems(results: RepositoryResult[]): WorkItem[] {
       if (coveredBranches.has(pull.branch)) continue;
       const branch: ActivityBranch = {
         name: pull.branch,
-        sha: "",
+        sha: pull.headSha,
         ahead: 0,
         behind: 0,
         commits: [],
@@ -130,5 +130,35 @@ export function summarize(items: WorkItem[]): QueueSummary {
     failedChecks: items.filter((item) => item.pull?.checkState === "failure").length,
     large: items.filter((item) => item.lines >= 500).length,
     total: items.length,
+  };
+}
+
+export function workItemSnapshot(item: WorkItem): string {
+  return `${item.attention}:${item.branch.sha}`;
+}
+
+export function snapshotWorkItems(items: WorkItem[]): Record<string, string> {
+  return Object.fromEntries(items.map((item) => [item.id, workItemSnapshot(item)]));
+}
+
+export function updateWorkItemSeen(
+  items: WorkItem[],
+  seenItems: Record<string, string>,
+  knownRepositories: Record<string, string>,
+  initialized: boolean,
+): { snapshots: Record<string, string>; changed: string[] } {
+  const current = snapshotWorkItems(items);
+  if (!initialized) return { snapshots: current, changed: [] };
+
+  const snapshots = { ...seenItems };
+  for (const item of items) {
+    if (knownRepositories[item.repo.fullName] === undefined) snapshots[item.id] = current[item.id];
+  }
+
+  return {
+    snapshots,
+    changed: items
+      .filter((item) => snapshots[item.id] !== current[item.id])
+      .map((item) => item.id),
   };
 }

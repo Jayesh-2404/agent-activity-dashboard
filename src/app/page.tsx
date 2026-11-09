@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell, type AppView } from "@/components/app-shell";
 import { Brand } from "@/components/brand";
 import { QueueView } from "@/components/queue-view";
@@ -37,6 +37,11 @@ export default function Home() {
     () => activity.availableRepos.filter((repo) => activity.selectedIds.includes(repo.id)),
     [activity.availableRepos, activity.selectedIds],
   );
+  const changedItemCount = activity.changedItems.length;
+
+  useEffect(() => {
+    document.title = changedItemCount > 0 ? `(${changedItemCount}) Agent Activity` : "Agent Activity";
+  }, [changedItemCount]);
 
   const openPicker = useCallback(() => setPickerOpen(true), []);
   const closePicker = useCallback(() => setPickerOpen(false), []);
@@ -89,6 +94,7 @@ export default function Home() {
             errors={errors}
             lastUpdated={activity.lastUpdated}
             newRepos={activity.newRepos}
+            changedItems={activity.changedItems}
             refreshing={activity.sync === "syncing"}
             error={activity.error}
             onRefresh={activity.refresh}
