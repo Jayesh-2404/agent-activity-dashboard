@@ -131,6 +131,7 @@ async function loadRepository(fullName: string) {
       avatarUrl: pull.user?.avatar_url ?? "",
       branch: pull.head.ref,
       base: pull.base.ref,
+      headSha: pull.head.sha,
       reviewers: pull.requested_reviewers.map((reviewer) => reviewer.login),
       reviewState: pull.review_state,
       checkState: pull.check_state,

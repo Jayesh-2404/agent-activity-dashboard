@@ -99,6 +99,14 @@
   color: var(--signal);
 }
 
+.changed {
+  padding: 0 5px;
+  border: 1px solid var(--signal);
+  color: var(--signal);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
 .actions {
   display: flex;
   align-items: center;

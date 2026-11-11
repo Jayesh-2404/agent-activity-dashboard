@@ -25,7 +25,7 @@ function checksLabel(item: WorkItemType): string {
   return labels[item.pull.checkState];
 }
 
-export function WorkItem({ item }: { item: WorkItemType }) {
+export function WorkItem({ item, changed = false }: { item: WorkItemType; changed?: boolean }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const tone = statusTone(item.attention);
@@ -59,6 +59,7 @@ export function WorkItem({ item }: { item: WorkItemType }) {
           </div>
           <h3 className={styles.title}>{title}</h3>
           <div className={styles.meta}>
+            {changed ? <span className={styles.changed}>Changed</span> : null}
             <span className={styles.status}>{status}</span>
             {item.attention !== "checks-failing" && item.pull?.checkState === "failure" ? (
               <span className={styles.checkFail}>checks failing</span>

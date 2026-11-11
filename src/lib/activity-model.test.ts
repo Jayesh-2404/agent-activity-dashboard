@@ -3,8 +3,11 @@ import {
   buildWorkItems,
   inferAttention,
   partitionWorkItems,
+  snapshotWorkItems,
   sortWorkItems,
   summarize,
+  updateWorkItemSeen,
+  workItemSnapshot,
 } from "./activity-model";
 import {
   formatAge,
@@ -43,6 +46,7 @@ function makePull(overrides: Partial<PullRequest> = {}): PullRequest {
     avatarUrl: "",
     branch: "agent/one",
     base: "main",
+    headSha: "d".repeat(40),
     reviewers: [],
     reviewState: "ready",
     checkState: "success",
@@ -159,6 +163,16 @@ describe("buildWorkItems", () => {
     expect(items[0].branch.pullRequest?.number).toBe(42);
     expect(items[0].attention).toBe("unknown");
     expect(items[0].attention).not.toBe("no-pull-request");
+  });
+
+  it("uses the pull request head when no branch row exists", () => {
+    const pull = makePull({ branch: "agent/only-pull", headSha: "e".repeat(40) });
+    const repo = makeRepo({ branches: [], pullRequests: [pull] });
+
+    const items = buildWorkItems([makeResult(repo)]);
+
+    expect(items).toHaveLength(1);
+    expect(items[0].branch.sha).toBe(pull.headSha);
   });
 
   it("summarizes waiting, in flight, failing checks, and large diffs", () => {
@@ -281,6 +295,71 @@ describe("sortWorkItems", () => {
     const sorted = sortWorkItems(items);
 
     expect(sorted.map((item) => item.branch.name)).toEqual(["agent/a", "agent/b"]);
+  });
+});
+
+describe("updateWorkItemSeen", () => {
+  function makeItem() {
+    const repo = makeRepo({
+      branches: [makeBranch({ name: "agent/one", pullRequest: { number: 1 } })],
+      pullRequests: [makePull({ branch: "agent/one" })],
+    });
+    return buildWorkItems([makeResult(repo)])[0];
+  }
+
+  it("baselines the first load without marks", () => {
+    const item = makeItem();
+
+    expect(updateWorkItemSeen([item], {}, {}, false)).toEqual({
+      snapshots: snapshotWorkItems([item]),
+      changed: [],
+    });
+  });
+
+  it("marks an item after its attention or head moves", () => {
+    const item = makeItem();
+    const seen = snapshotWorkItems([item]);
+    const repositories = { "acme/atlas": "seen" };
+
+    expect(updateWorkItemSeen([item], seen, repositories, true).changed).toEqual([]);
+    expect(
+      updateWorkItemSeen([{ ...item, attention: "approved" }], seen, repositories, true).changed,
+    ).toEqual([item.id]);
+    expect(
+      updateWorkItemSeen(
+        [{ ...item, branch: { ...item.branch, sha: "c".repeat(40) } }],
+        seen,
+        repositories,
+        true,
+      ).changed,
+    ).toEqual([item.id]);
+  });
+
+  it("baselines a newly selected repository, then marks later moves", () => {
+    const item = makeItem();
+    const first = updateWorkItemSeen([item], {}, {}, true);
+    const repositories = { "acme/atlas": "seen" };
+    const moved = { ...item, branch: { ...item.branch, sha: "c".repeat(40) } };
+
+    expect(first.changed).toEqual([]);
+    expect(first.snapshots[item.id]).toBe(workItemSnapshot(item));
+    expect(updateWorkItemSeen([moved], first.snapshots, repositories, true).changed).toEqual([
+      item.id,
+    ]);
+  });
+
+  it("marks a new item in a repository the user has seen", () => {
+    const item = makeItem();
+
+    expect(
+      updateWorkItemSeen([item], {}, { "acme/atlas": "seen" }, true).changed,
+    ).toEqual([item.id]);
+  });
+
+  it("serializes attention and head", () => {
+    const item = makeItem();
+
+    expect(workItemSnapshot(item)).toBe(`${item.attention}:${item.branch.sha}`);
   });
 });
 

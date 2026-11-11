@@ -16,6 +16,7 @@ export function QueueView({
   errors,
   lastUpdated,
   newRepos,
+  changedItems,
   refreshing,
   error,
   onRefresh,
@@ -30,6 +31,7 @@ export function QueueView({
   errors: RepositoryResult[];
   lastUpdated: Date | null;
   newRepos: string[];
+  changedItems: string[];
   refreshing: boolean;
   error: string;
   onRefresh: () => void;
@@ -38,6 +40,7 @@ export function QueueView({
   onMarkSeen: () => void;
 }) {
   const { waiting, inFlight } = partitionWorkItems(items);
+  const changedItemSet = new Set(changedItems);
   const truncated = repositories.some((repo) => repo.pullRequestsTruncated || repo.truncatedBranches);
   const empty = items.length === 0;
   const localRepositories = repositories.filter((repo) => repo.local !== null);
@@ -71,7 +74,12 @@ export function QueueView({
       ) : null}
 
       {repositories.length > 0 ? (
-        <MainLine repositories={repositories} newRepos={newRepos} onMarkSeen={onMarkSeen} />
+        <MainLine
+          repositories={repositories}
+          newRepos={newRepos}
+          changedItemCount={changedItems.length}
+          onMarkSeen={onMarkSeen}
+        />
       ) : null}
 
       <section className={styles.localActivity} aria-labelledby="local-activity-title">
@@ -183,7 +191,7 @@ export function QueueView({
           </div>
           <ul>
             {waiting.map((item) => (
-              <WorkItem item={item} key={item.id} />
+              <WorkItem item={item} key={item.id} changed={changedItemSet.has(item.id)} />
             ))}
           </ul>
         </section>
@@ -203,7 +211,7 @@ export function QueueView({
           </div>
           <ul>
             {inFlight.map((item) => (
-              <WorkItem item={item} key={item.id} />
+              <WorkItem item={item} key={item.id} changed={changedItemSet.has(item.id)} />
             ))}
           </ul>
         </section>
